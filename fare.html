@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fare Calculator - TransitEase</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.fare-reference-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+.fare-reference-table th{background:#0a160a;color:var(--primary);font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);}
+.fare-reference-table td{padding:9px 12px;border-bottom:1px solid var(--border);color:#cbd5e1;}
+.fare-reference-table tr:last-child td{border:none;}
+.fare-reference-table tr:hover td{background:var(--primary-dim);}
+.fare-ref-section{margin-bottom:28px;}
+.fare-ref-section h4{font-family:'Space Mono',monospace;font-size:13px;color:var(--accent);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.discount-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.full-width-card{width:90%;max-width:1100px;margin:0 auto 32px;position:relative;z-index:1;}
+.tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.tab-btn{padding:8px 16px;border:1px solid var(--border);border-radius:10px;background:#0a160a;color:var(--muted);font-size:13px;cursor:pointer;transition:0.3s;font-family:'DM Sans',sans-serif;}
+.tab-btn.active,.tab-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-dim);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.train-station-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.station-pill{background:#0a160a;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:#cbd5e1;text-align:center;}
+.station-pill strong{display:block;color:var(--primary);font-family:'Space Mono',monospace;font-size:11px;}
+@media(max-width:900px){
+  .train-station-grid{grid-template-columns:repeat(2,1fr);}
+  .chatbot-wrap{width:calc(100vw - 48px);right:24px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Transit<span>Ease</span></div>
+  <div class="menu-toggle">☰</div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="route.html">Routes</a>
+    <a href="fare.html" class="active">Fare</a>
+    <a href="map.html">Map</a>
+    <a href="about.html">About</a>
+  </nav>
+</header>
+
+<div class="fare-container">
+
+  <div class="page-header">
+    <h1>🚊 Fare Calculator</h1>
+    <p>Accurate NCR fare rates for jeepney, bus, LRT &amp; MRT — with student, senior &amp; PWD discounts</p>
+  </div>
+
+  <!-- LEFT: INPUTS -->
+  <div class="card">
+    <div class="section-title">✏️ Trip Details</div>
+
+    <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">From</label>
+    <input id="from" placeholder="e.g. Marikina, Cubao, Makati">
+
+    <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">To</label>
+    <input id="to" placeholder="e.g. Pasay, Quiapo, Ortigas">
+
+    <label style="font-size:12px;color:var(--muted);margin-bottom:4px;display:block;">Transport Mode</label>
+    <select id="vehicle">
+      <option value="jeepney_trad">🚙 Traditional Jeepney</option>
+      <option value="jeepney_mod">🚐 Modern / E-Jeepney</option>
+      <option value="bus_ordinary">🚌 City Bus (Ordinary)</option>
+      <option value="bus_aircon">🚌 City Bus (Air-Con)</option>
+      <option value="lrt1">🚆 LRT-1 (Roosevelt ↔ Dr. Santos)</option>
+      <option value="lrt2">🚆 LRT-2 (Recto ↔ Antipolo)</option>
+      <option value="mrt3">🚆 MRT-3 (North Ave ↔ Taft Ave)</option>
+      <option value="uv_express">🚐 UV Express</option>
+    </select>
+
+    <label style="font-size:12px;color:var(--muted);margin-bottom:8px;display:block;">Passenger Type</label>
+    <select id="passengerType">
+      <option value="regular">👤 Regular</option>
+      <option value="student">🎓 Student (20% discount)</option>
+      <option value="senior">👴 Senior Citizen (20% discount)</option>
+      <option value="pwd">♿ PWD (20% discount)</option>
+    </select>
+
+    <button class="btn-primary-block" onclick="calculateFare()">Calculate Fare</button>
+
+    <div style="margin-top:14px;padding:10px 12px;background:#0a160a;border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--muted);">
+      <strong style="color:var(--primary);font-family:'Space Mono',monospace;">ℹ️ Note:</strong> Train discounts (LRT/MRT) apply to students, seniors &amp; PWDs with valid IDs/concessionary Beep cards only.
+    </div>
+  </div>
+
+  <!-- RIGHT: RESULTS -->
+  <div class="card">
+    <div class="section-title">📊 Fare Details</div>
+
+    <div class="fare-section">
+      <div class="fare-label">Route</div>
+      <div id="routeText">Enter trip details to calculate</div>
+    </div>
+
+    <div class="fare-section">
+      <div class="fare-label">Estimated Travel Info</div>
+      <div class="fare-info-grid">
+        <div class="fare-info" id="distanceBox">
+          <span>📏</span>
+          <span>Distance<br>--</span>
+        </div>
+        <div class="fare-info" id="fareBox">
+          <span>💸</span>
+          <span>Fare<br>--</span>
+        </div>
+        <div class="fare-info" id="timeBox">
+          <span>⏱</span>
+          <span>Time<br>--</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="fare-section">
+      <div class="fare-label">Discount Applied</div>
+      <div id="discountText" style="font-size:14px;color:#cbd5e1;">None (Regular Fare)</div>
+    </div>
+
+    <div class="fare-section">
+      <div class="fare-label">Traffic Status</div>
+      <div id="traffic" class="badge badge-gray">Waiting for input</div>
+    </div>
+
+    <div class="fare-section" id="fareBreakdownSection" style="display:none;">
+      <div class="fare-label">Fare Breakdown</div>
+      <div id="fareBreakdown" style="font-size:13px;color:#cbd5e1;line-height:1.8;"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FARE REFERENCE TABLES -->
+<div class="full-width-card">
+  <div class="card">
+    <div class="section-title">📋 NCR Official Fare Reference (2026)</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Official rates per LTFRB and LRTA/DOTC as of March 2026. Rates marked * are provisional pending final fare matrix.</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('tab-jeep')">🚙 Jeepney</button>
+      <button class="tab-btn" onclick="showTab('tab-bus')">🚌 Bus</button>
+      <button class="tab-btn" onclick="showTab('tab-lrt1')">🚆 LRT-1</button>
+      <button class="tab-btn" onclick="showTab('tab-lrt2')">🚆 LRT-2</button>
+      <button class="tab-btn" onclick="showTab('tab-mrt')">🚆 MRT-3</button>
+      <button class="tab-btn" onclick="showTab('tab-discounts')">🏷️ Discounts</button>
+    </div>
+
+    <!-- JEEPNEY -->
+    <div class="tab-panel active" id="tab-jeep">
+      <div class="fare-ref-section">
+        <h4>🚙 Traditional Jeepney (PUJ) — Effective March 19, 2026*</h4>
+        <table class="fare-reference-table">
+          <thead><tr><th>Distance</th><th>Regular Fare</th><th>Student/Senior/PWD (20% off)</th></tr></thead>
+          <tbody>
+            <tr><td>Minimum (up to 4 km)</td><td>₱14.00</td><td>₱11.25</td></tr>
+            <tr><td>5 km</td><td>₱16.00</td><td>₱12.75</td></tr>
+            <tr><td>6 km</td><td>₱18.00</td><td>₱14.50</td></tr>
+            <tr><td>7 km</td><td>₱20.00</td><td>₱16.00</td></tr>
+            <tr><td>8 km</td><td>₱22.00</td><td>₱17.50</td></tr>
+            <tr><td>10 km</td><td>₱26.00</td><td>₱20.75</td></tr>
+            <tr><td>Each km after 4 km</td><td>+₱2.00/km</td><td>+₱1.60/km</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="fare-ref-section">
+        <h4>🚐 Modern / E-Jeepney (PUJ-Modern) — Effective March 19, 2026*</h4>
+        <table class="fare-reference-table">
+          <thead><tr><th>Distance</th><th>Regular Fare</th><th>Student/Senior/PWD (20% off)</th></tr></thead>
+          <tbody>
+            <tr><td>Minimum (up to 4 km)</td><td>₱17.00</td><td>₱13.50</td></tr>
+            <tr><td>5 km</td><td>₱19.25</td><td>₱15.50</td></tr>
+            <tr><td>6 km</td><td>₱21.55</td><td>₱17.25</td></tr>
+            <tr><td>7 km</td><td>₱23.85</td><td>₱19.00</td></tr>
+            <tr><td>8 km</td><td>₱26.15</td><td>₱20.75</td></tr>
+            <tr><td>10 km</td><td>₱30.75</td><td>₱24.50</td></tr>
+            <tr><td>Each km after 4 km</td><td>+₱2.30/km</td><td>+₱1.85/km</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BUS -->
+    <div class="tab-panel" id="tab-bus">
+      <div class="fare-ref-section">
+        <h4>🚌 City Bus — Ordinary (LTFRB rates, last updated Oct 2022)</h4>
+        <table class="fare-reference-table">
+          <thead><tr><th>Distance</th><th>Regular Fare</th><th>Student/Senior/PWD (20% off)</th></tr></thead>
+          <tbody>
+            <tr><td>Minimum fare (up to 5 km)</td><td>₱13.00</td><td>₱10.50</td></tr>
+            <tr><td>6–10 km</td><td>₱13.00 + ₱2.25/km</td><td>₱10.50 + ₱1.80/km</td></tr>
+            <tr><td>11–15 km</td><td>₱24.25 + ₱2.25/km</td><td>₱19.50 + ₱1.80/km</td></tr>
+            <tr><td>16+ km</td><td>Continued ₱2.25/km</td><td>Continued ₱1.80/km</td></tr>
+            <tr><td>Example: Cubao–Makati (~12 km)</td><td>~₱38.00</td><td>~₱30.50</td></tr>
+            <tr><td>Example: Quezon Ave–Pasay (~22 km)</td><td>~₱58.00</td><td>~₱46.50</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="fare-ref-section">
+        <h4>🚌 City Bus — Air-Conditioned</h4>
+        <table class="fare-reference-table">
+          <thead><tr><th>Distance</th><th>Regular Fare</th><th>Student/Senior/PWD (20% off)</th></tr></thead>
+          <tbody>
+            <tr><td>Minimum fare (up to 5 km)</td><td>₱15.00</td><td>₱12.00</td></tr>
+            <tr><td>Per km after 5 km</td><td>+₱2.65/km</td><td>+₱2.10/km</td></tr>
+            <tr><td>Example: Cubao–Makati (~12 km)</td><td>~₱33.55</td><td>~₱26.85</td></tr>
+            <tr><td>Example: Monumento–Pasay (~25 km)</td><td>~₱68.00</td><td>~₱54.40</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LRT-1 -->
+    <div class="tab-panel" id="tab-lrt1">
+      <div class="fare-ref-section">
+        <h4>🚆 LRT-1 Fare Matrix (25 stations: FPJ/Roosevelt → Dr. Santos/Bacoor)</h4>
+        <table class="fare-reference-table">
+          <thead><tr><th>Stations Traveled</th><th>Regular (Beep)</th><th>Regular (Single Journey)</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td>1–5 stations</td><td>₱15.00</td><td>₱17.00</td><td>Short distance</td></tr>
+            <tr><td>6–10 stations</td><td>₱20.00</td><td>₱22.00</td><td>Mid distance</td></tr>
+            <tr><td>11–20 stations</td><td>₱30.00</td><td>₱32.00</td><td>Long distance</td></tr>
+            <tr><td>Cavite Extension (new)</td><td>₱35.00–₱40.00</td><td>₱37.00–₱42.00</td><td>Phase 1 stations</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:12px;color:var(--muted);margin-top:8px;">⚠️ LRT-1 does <strong style="color:#ef4444">NOT</strong> offer student/senior/PWD discounts as of 2026. All passengers pay the same rate.</p>
+        <div style="margin-top:14px;">
+          <div style="font-size:12px;color:var(--primary);font-family:'Space Mono',monospace;margin-bottom:8px;">LRT-1 STATIONS (North → South)</div>
+          <div class="train-station-grid">
+            <div class="station-pill"><strong>1</strong>FPJ (Roosevelt)</div>
+            <div class="station-pill"><strong>2</strong>Balintawak</div>
+            <div class="station-pill"><strong>3</strong>Monumento</div>
+            <div class="station-pill"><strong>4</strong>5th Avenue</div>
+            <div class="station-pill"><strong>5</strong>R. Papa</div>
+            <div class="station-pill"><strong>6</strong>Abad Santos</div>
+            <div class="station-pill"><strong>7</strong>Blumentritt</div>
+            <div class="station-pill"><strong>8</strong>Tayuman</div>
+            <div class="station-pill"><strong>9</strong>Bambang</div>
+            <div class="station-pill"><strong>10</strong>Doroteo Jose</div>
+            <div class="station-pill"><strong>11</strong>Carriedo</div>
+            <div class="station-pill"><strong>12</strong>Central Terminal</div>
+            <div class="station-pill"><strong>13</strong>UN Avenue</div>
+            <div class="station-pill"><strong>14</strong>Pedro Gil</div>
+            <div class="station-pill"><strong>15</strong>Quirino</div>
+            <div class="station-pill"><strong>16</strong>Vito Cruz</div>
+            <div class="station-pill"><strong>17</strong>Gil Puyat</div>
+            <div class="station-pill"><strong>18</strong>Libertad</div>
+            <div class="station-pill"><strong>19</strong>EDSA-Taft</div>
+            <div class="station-pill"><strong>20</strong>Baclaran</div>
+            <div class="station-pill"><strong>21</strong>Redemptorist</div>
+            <div class="station-pill"><strong>22</strong>MIA</div>
+            <div class="station-pill"><strong>23</strong>Asia World</div>
+            <div class="station-pill"><strong>24</strong>Ninoy Aquino</div>
+            <div class="station-pill"><strong>25</strong>Dr. Santos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LRT-2 -->
+    <div class="tab-panel" id="tab-lrt2">
+      <div class="fare-ref-section">
+        <h4>🚆 LRT-2 Fare Matrix (13 stations: Recto → Antipolo, Purple Line)</h4>
+        <table class="fare-reference-table">
+          <thead><tr><th>Ticket Type</th><th>Minimum</th><th>Maximum (End-to-End)</th></tr></thead>
+          <tbody>
+            <tr><td>Beep Card (regular)</td><td>₱13.00</td><td>₱33.00</td></tr>
+            <tr><td>Single Journey Ticket (regular)</td><td>₱15.00</td><td>₱35.00</td></tr>
+            <tr><td>Concessionary Beep Card (Students/Seniors/PWDs)</td><td>₱6.50</td><td>₱16.50</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:12px;color:var(--muted);margin-top:8px;">🎓 LRT-2 now offers <strong style="color:var(--primary)">50% discount</strong> for students, seniors, and PWDs with valid concessionary Beep cards (effective Oct 2025).</p>
+        <div style="margin-top:14px;">
+          <div style="font-size:12px;color:var(--primary);font-family:'Space Mono',monospace;margin-bottom:8px;">LRT-2 STATIONS (West → East)</div>
+          <div class="train-station-grid">
+            <div class="station-pill"><strong>1</strong>Recto</div>
+            <div class="station-pill"><strong>2</strong>Legarda</div>
+            <div class="station-pill"><strong>3</strong>Pureza</div>
+            <div class="station-pill"><strong>4</strong>V. Mapa</div>
+            <div class="station-pill"><strong>5</strong>J. Ruiz</div>
+            <div class="station-pill"><strong>6</strong>Gilmore</div>
+            <div class="station-pill"><strong>7</strong>Betty Go-Belmonte</div>
+            <div class="station-pill"><strong>8</strong>Cubao</div>
+            <div class="station-pill"><strong>9</strong>Anonas</div>
+            <div class="station-pill"><strong>10</strong>Katipunan</div>
+            <div class="station-pill"><strong>11</strong>Santolan</div>
+            <div class="station-pill"><strong>12</strong>Marikina</div>
+            <div class="station-pill"><strong>13</strong>Antipolo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MRT-3 -->
+    <div class="tab-panel" id="tab-mrt">
+      <div class="fare-ref-section">
+        <h4>🚆 MRT-3 Fare Matrix (13 stations: North Avenue → Taft Ave, EDSA Corridor)</h4>
+        <table class="fare-reference-table">
+          <thead><tr><th>Stations Traveled</th><th>Regular Fare</th><th>Student/Senior/PWD (20% off)</th></tr></thead>
+          <tbody>
+            <tr><td>1–3 stations</td><td>₱13.00</td><td>₱10.50</td></tr>
+            <tr><td>4–6 stations</td><td>₱16.00</td><td>₱12.75</td></tr>
+            <tr><td>7–9 stations</td><td>₱20.00</td><td>₱16.00</td></tr>
+            <tr><td>10–12 stations</td><td>₱24.00</td><td>₱19.25</td></tr>
+            <tr><td>End-to-end (13 stations)</td><td>₱28.00</td><td>₱22.50</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:12px;color:var(--muted);margin-top:8px;">💳 Single-journey tickets no longer sold. All passengers must use Beep cards (₱50: ₱30 load + ₱20 deposit). GCash QR &amp; EMV tap accepted since Aug 2025.</p>
+        <div style="margin-top:14px;">
+          <div style="font-size:12px;color:var(--primary);font-family:'Space Mono',monospace;margin-bottom:8px;">MRT-3 STATIONS (North → South)</div>
+          <div class="train-station-grid">
+            <div class="station-pill"><strong>1</strong>North Avenue</div>
+            <div class="station-pill"><strong>2</strong>Quezon Avenue</div>
+            <div class="station-pill"><strong>3</strong>GMA-Kamuning</div>
+            <div class="station-pill"><strong>4</strong>Araneta-Cubao</div>
+            <div class="station-pill"><strong>5</strong>Santolan-Annapolis</div>
+            <div class="station-pill"><strong>6</strong>Ortigas</div>
+            <div class="station-pill"><strong>7</strong>Shaw Boulevard</div>
+            <div class="station-pill"><strong>8</strong>Boni</div>
+            <div class="station-pill"><strong>9</strong>Guadalupe</div>
+            <div class="station-pill"><strong>10</strong>Buendia</div>
+            <div class="station-pill"><strong>11</strong>Ayala</div>
+            <div class="station-pill"><strong>12</strong>Magallanes</div>
+            <div class="station-pill"><strong>13</strong>Taft Avenue</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISCOUNTS -->
+    <div class="tab-panel" id="tab-discounts">
+      <div class="fare-ref-section">
+        <h4>🏷️ Discount Summary — All Transport Modes</h4>
+        <table class="fare-reference-table">
+          <thead><tr><th>Transport</th><th>Student</th><th>Senior Citizen</th><th>PWD</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>🚙 Traditional Jeepney</td><td>20% off</td><td>20% off</td><td>20% off</td><td>Valid school ID / senior ID / PWD ID required</td></tr>
+            <tr><td>🚐 Modern Jeepney</td><td>20% off</td><td>20% off</td><td>20% off</td><td>Valid ID required</td></tr>
+            <tr><td>🚌 Bus (Ordinary/AC)</td><td>20% off</td><td>20% off</td><td>20% off</td><td>Present ID to conductor</td></tr>
+            <tr><td>🚆 LRT-1</td><td>❌ None</td><td>❌ None</td><td>❌ None</td><td>All passengers pay standard fare</td></tr>
+            <tr><td>🚆 LRT-2</td><td>50% off</td><td>50% off</td><td>50% off</td><td>Concessionary Beep card required (Oct 2025+)</td></tr>
+            <tr><td>🚆 MRT-3</td><td>20% off</td><td>20% off</td><td>20% off</td><td>Valid ID or concessionary Beep card</td></tr>
+            <tr><td>🚐 UV Express</td><td>20% off</td><td>20% off</td><td>20% off</td><td>LTFRB-regulated routes only</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:12px;color:var(--muted);margin-top:12px;">Source: LTFRB MC 2017-024, LRTA 2025 announcements. Student discounts apply every day including weekends and holidays.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  © 2026 TransitEase | Smart Urban Mobility System
+</footer>
+
+
+<script>
+/* ── LOCATION COORDINATES (km from reference point) ── */
+const locations = {
+  marikina:{x:0,y:0,lat:14.6507,lng:121.1029},
+  antipolo:{x:3,y:-2,lat:14.6250,lng:121.1200},
+  cubao:{x:-6,y:2,lat:14.6181,lng:121.0525},
+  quiapo:{x:-10,y:5,lat:14.5988,lng:120.9841},
+  makati:{x:-12,y:-3,lat:14.5547,lng:121.0244},
+  bgc:{x:-12,y:-4,lat:14.5502,lng:121.0509},
+  ortigas:{x:-8,y:1,lat:14.5876,lng:121.0562},
+  pasay:{x:-14,y:-6,lat:14.5378,lng:121.0014},
+  mandaluyong:{x:-9,y:0,lat:14.5794,lng:121.0359},
+  pasig:{x:-5,y:-1,lat:14.5764,lng:121.0851},
+  taguig:{x:-13,y:-5,lat:14.5243,lng:121.0795},
+  paranaque:{x:-14,y:-7,lat:14.4793,lng:121.0198},
+  muntinlupa:{x:-15,y:-10,lat:14.4081,lng:121.0415},
+  laspiñas:{x:-16,y:-8,lat:14.4491,lng:120.9832},
+  valenzuela:{x:-7,y:8,lat:14.7011,lng:120.9830},
+  caloocan:{x:-8,y:7,lat:14.6497,lng:120.9673},
+  malabon:{x:-9,y:9,lat:14.6686,lng:120.9571},
+  navotas:{x:-10,y:10,lat:14.6669,lng:120.9418},
+  novaliches:{x:-5,y:8,lat:14.7180,lng:121.0340},
+  quezon:{x:-7,y:5,lat:14.6760,lng:121.0437},
+  sanmateo:{x:2,y:3,lat:14.6990,lng:121.1224},
+  rodriguez:{x:5,y:5,lat:14.7366,lng:121.1349},
+  montalban:{x:5,y:5,lat:14.7366,lng:121.1349},
+  manila:{x:-11,y:4,lat:14.5995,lng:120.9842},
+  ermita:{x:-12,y:5,lat:14.5836,lng:120.9875},
+  malate:{x:-13,y:4,lat:14.5740,lng:120.9897},
+  paco:{x:-11,y:3,lat:14.5869,lng:120.9920},
+  pandacan:{x:-10,y:3,lat:14.5979,lng:121.0013},
+  binondo:{x:-11,y:5,lat:14.6001,lng:120.9726},
+  sanpa:{x:-10,y:5,lat:14.6003,lng:120.9889}
+};
+
+function getDistance(a,b){
+  const p1=locations[a.toLowerCase().replace(/\s+/g,'').split(',')[0]];
+  const p2=locations[b.toLowerCase().replace(/\s+/g,'').split(',')[0]];
+  if(!p1||!p2) return null;
+  const dx=p1.x-p2.x, dy=p1.y-p2.y;
+  return parseFloat(Math.sqrt(dx*dx+dy*dy).toFixed(2));
+}
+
+/* ── REAL FARE FORMULAS (2026) ── */
+const fareConfig={
+  jeepney_trad:{
+    label:'Traditional Jeepney',
+    calc:(d,disc)=>{
+      const base=14, perKm=2.0;
+      const raw=d<=4?base:base+(d-4)*perKm;
+      const rounded=Math.ceil(raw/0.25)*0.25;
+      return disc?rounded*0.8:rounded;
+    },
+    timePerKm:5, breakdownFn:(d,disc)=>{
+      const base=14,raw=d<=4?base:base+(d-4)*2.0;
+      return `Base (4 km): ₱14.00${d>4?`<br>Extra ${(d-4).toFixed(1)} km × ₱2.00 = ₱${((d-4)*2).toFixed(2)}`:''}${disc?`<br>20% discount applied`:''}`;
+    }
+  },
+  jeepney_mod:{
+    label:'Modern / E-Jeepney',
+    calc:(d,disc)=>{
+      const base=17,perKm=2.30;
+      const raw=d<=4?base:base+(d-4)*perKm;
+      const rounded=Math.ceil(raw/0.25)*0.25;
+      return disc?rounded*0.8:rounded;
+    },
+    timePerKm:5, breakdownFn:(d,disc)=>{
+      const base=17,raw=d<=4?base:base+(d-4)*2.30;
+      return `Base (4 km): ₱17.00${d>4?`<br>Extra ${(d-4).toFixed(1)} km × ₱2.30 = ₱${((d-4)*2.30).toFixed(2)}`:''}${disc?`<br>20% discount applied`:''}`;
+    }
+  },
+  bus_ordinary:{
+    label:'City Bus (Ordinary)',
+    calc:(d,disc)=>{
+      const base=13,perKm=2.25;
+      const raw=d<=5?base:base+(d-5)*perKm;
+      return disc?raw*0.8:raw;
+    },
+    timePerKm:4, breakdownFn:(d,disc)=>{
+      const raw=d<=5?13:13+(d-5)*2.25;
+      return `Base (5 km): ₱13.00${d>5?`<br>Extra ${(d-5).toFixed(1)} km × ₱2.25 = ₱${((d-5)*2.25).toFixed(2)}`:''}${disc?`<br>20% discount applied`:''}`;
+    }
+  },
+  bus_aircon:{
+    label:'City Bus (Air-Con)',
+    calc:(d,disc)=>{
+      const base=15,perKm=2.65;
+      const raw=d<=5?base:base+(d-5)*perKm;
+      return disc?raw*0.8:raw;
+    },
+    timePerKm:4, breakdownFn:(d,disc)=>{
+      const raw=d<=5?15:15+(d-5)*2.65;
+      return `Base (5 km): ₱15.00${d>5?`<br>Extra ${(d-5).toFixed(1)} km × ₱2.65 = ₱${((d-5)*2.65).toFixed(2)}`:''}${disc?`<br>20% discount applied`:''}`;
+    }
+  },
+  lrt1:{
+    label:'LRT-1',
+    calc:(d,_disc)=>{
+      // No discount on LRT-1
+      if(d<=5) return 15;
+      if(d<=12) return 20;
+      return 30;
+    },
+    timePerKm:2.5, breakdownFn:(d,_)=>{
+      return `Distance-based tier: ${d<=5?'Short (≤5km) ₱15':d<=12?'Mid (6-12km) ₱20':'Long (>12km) ₱30'}<br><span style="color:#ef4444">Note: LRT-1 does not offer passenger discounts.</span>`;
+    }
+  },
+  lrt2:{
+    label:'LRT-2',
+    calc:(d,disc)=>{
+      const base=disc?6.5:13;
+      const max=disc?16.5:33;
+      // Scale linearly over ~14 km (end-to-end distance)
+      const fare=Math.min(max, base+(max-base)*(d/14));
+      return parseFloat(fare.toFixed(2));
+    },
+    timePerKm:2.5, breakdownFn:(d,disc)=>{
+      return `${disc?'Concessionary Beep card (50% off)':'Beep card — standard fare'}<br>Min: ₱${disc?'6.50':'13.00'} | Max: ₱${disc?'16.50':'33.00'}<br>${disc?'🎓 50% discount applied (LRT-2 specific)':''}`;
+    }
+  },
+  mrt3:{
+    label:'MRT-3',
+    calc:(d,disc)=>{
+      let fare;
+      if(d<=4) fare=13;
+      else if(d<=8) fare=16;
+      else if(d<=12) fare=20;
+      else if(d<=15) fare=24;
+      else fare=28;
+      return disc?fare*0.8:fare;
+    },
+    timePerKm:2, breakdownFn:(d,disc)=>{
+      const tier=d<=4?'₱13 (1-3 stations)':d<=8?'₱16 (4-6 stations)':d<=12?'₱20 (7-9 stations)':d<=15?'₱24 (10-12 stations)':'₱28 (end-to-end)';
+      return `Tier: ${tier}${disc?`<br>20% discount applied`:''}`;
+    }
+  },
+  uv_express:{
+    label:'UV Express',
+    calc:(d,disc)=>{
+      const raw=d<=5?15:15+(d-5)*3;
+      return disc?raw*0.8:raw;
+    },
+    timePerKm:4.5, breakdownFn:(d,disc)=>{
+      return `Base: ₱15.00 (5 km)${d>5?`<br>Extra: ₱${((d-5)*3).toFixed(2)}`:''}${disc?`<br>20% discount applied`:''}`;
+    }
+  }
+};
+
+function calculateFare(){
+  const fromRaw=document.getElementById('from').value.trim();
+  const toRaw=document.getElementById('to').value.trim();
+  const vehicle=document.getElementById('vehicle').value;
+  const passengerType=document.getElementById('passengerType').value;
+
+  if(!fromRaw||!toRaw){alert('Please enter both From and To locations.');return;}
+
+  const distance=getDistance(fromRaw,toRaw);
+  if(distance===null){
+    alert('Location not found. Try city names like: Marikina, Cubao, Quiapo, Makati, Ortigas, Pasay, Mandaluyong, Pasig, Taguig, Caloocan, Valenzuela, Manila, etc.');
+    return;
+  }
+
+  const cfg=fareConfig[vehicle];
+  const isDiscount=passengerType!=='regular';
+  const isLRT1NoDisc=vehicle==='lrt1'&&isDiscount;
+  const cost=cfg.calc(distance,isDiscount&&!isLRT1NoDisc);
+  const time=Math.round(distance*cfg.timePerKm);
+
+  let trafficC='green',trafficT='Light Traffic';
+  if(distance>8){trafficC='yellow';trafficT='Moderate Traffic';}
+  if(distance>14){trafficC='red';trafficT='Heavy Traffic';}
+
+  // Rush hour adjustment
+  const h=new Date().getHours();
+  if((h>=7&&h<9)||(h>=17&&h<20)){trafficC='red';trafficT='Heavy Traffic (Rush Hour)';}
+
+  document.getElementById('routeText').innerText=fromRaw+' → '+toRaw;
+  document.getElementById('distanceBox').innerHTML='<span>📏</span><span>Distance<br>'+distance.toFixed(1)+' km</span>';
+  document.getElementById('fareBox').innerHTML='<span>💸</span><span>Fare<br>₱'+cost.toFixed(2)+'</span>';
+  document.getElementById('timeBox').innerHTML='<span>⏱</span><span>Est. Time<br>'+time+' mins</span>';
+
+  const t=document.getElementById('traffic');
+  t.className='badge badge-'+trafficC;
+  t.innerText=trafficT;
+
+  // Discount text
+  let discMsg='None (Regular Fare)';
+  if(isLRT1NoDisc) discMsg='⚠️ LRT-1 does not offer discounts — regular fare applied';
+  else if(passengerType==='student'&&vehicle==='lrt2') discMsg='🎓 Student — 50% off (LRT-2 Concessionary Beep)';
+  else if(passengerType==='senior'&&vehicle==='lrt2') discMsg='👴 Senior — 50% off (LRT-2 Concessionary Beep)';
+  else if(passengerType==='pwd'&&vehicle==='lrt2') discMsg='♿ PWD — 50% off (LRT-2 Concessionary Beep)';
+  else if(passengerType==='student') discMsg='🎓 Student — 20% discount applied';
+  else if(passengerType==='senior') discMsg='👴 Senior Citizen — 20% discount applied';
+  else if(passengerType==='pwd') discMsg='♿ PWD — 20% discount applied';
+  document.getElementById('discountText').innerHTML=discMsg;
+
+  // Breakdown
+  document.getElementById('fareBreakdown').innerHTML=cfg.breakdownFn(distance,isDiscount&&!isLRT1NoDisc);
+  document.getElementById('fareBreakdownSection').style.display='block';
+}
+
+/* ── TABS ── */
+function showTab(id){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+/* ── MOBILE NAV ── */
+document.querySelector('.menu-toggle').addEventListener('click',function(){
+  document.querySelector('nav').classList.toggle('open');
+});
+
+</script>
+</body>
+</html>

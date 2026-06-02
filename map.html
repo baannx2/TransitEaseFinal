@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransitEase Map — NCR Transit Navigator</title>
+
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+
+*{margin:0;padding:0;box-sizing:border-box;scroll-behavior:smooth;}
+
+
+:root{
+  --bg:#030a03;
+  --card:rgba(10,20,10,0.92);
+  --primary:#22c55e;
+  --primary-dim:rgba(34,197,94,0.15);
+  --primary-border:rgba(34,197,94,0.25);
+  --text:#f0fdf0;
+  --muted:#6b8f6b;
+  --border:rgba(34,197,94,0.12);
+  --shadow:0 8px 32px rgba(0,0,0,0.6);
+  --glow:0 0 20px rgba(34,197,94,0.2);
+  --warn:#facc15;
+  --danger:#ef4444;
+}
+
+
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  overflow-x:hidden;
+  min-height:100vh;
+}
+
+
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:#030a03;}
+::-webkit-scrollbar-thumb{background:#22c55e;border-radius:10px;}
+
+
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:0;
+  opacity:0.35;
+}
+
+
+header{
+  position:sticky;
+  top:0;
+  z-index:1000;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 6%;
+  background:rgba(3,10,3,0.95);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+
+
+.logo{
+  font-family:'Space Mono',monospace;
+  font-size:22px;
+  font-weight:700;
+  color:var(--primary);
+  text-shadow:var(--glow);
+  letter-spacing:1px;
+}
+
+
+.logo span{color:#86efac;}
+
+
+nav{display:flex;gap:24px;align-items:center;}
+
+
+nav a{
+  color:var(--muted);
+  text-decoration:none;
+  font-size:13px;
+  font-weight:500;
+  letter-spacing:0.5px;
+  transition:0.3s;
+  position:relative;
+  text-transform:uppercase;
+}
+
+
+nav a::after{
+  content:'';
+  position:absolute;
+  left:0;bottom:-4px;
+  width:0;height:1px;
+  background:var(--primary);
+  transition:0.3s;
+}
+
+
+nav a:hover{color:var(--primary);}
+nav a:hover::after{width:100%;}
+nav a.active{color:var(--primary);}
+nav a.active::after{width:100%;}
+
+
+.hero{
+  width:90%;
+  max-width:1200px;
+  margin:34px auto 18px;
+  position:relative;
+  z-index:1;
+}
+
+
+.hero h1{
+  font-family:'Space Mono',monospace;
+  font-size:34px;
+  color:var(--text);
+  margin-bottom:10px;
+}
+
+
+.hero h1 span{color:var(--primary);}
+
+
+.hero p{
+  color:var(--muted);
+  max-width:720px;
+  line-height:1.7;
+  font-size:14px;
+}
+
+
+.search-container{
+  width:90%;
+  max-width:1200px;
+  margin:0 auto 20px;
+  position:relative;
+  z-index:1;
+}
+
+
+.search-box{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:14px;
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(12px);
+}
+
+
+.search-box input{
+  flex:1;
+  padding:14px 16px;
+  border:1px solid var(--border);
+  outline:none;
+  border-radius:12px;
+  background:#0a160a;
+  color:var(--text);
+  font-size:14px;
+  transition:0.3s;
+}
+
+
+.search-box input:focus{
+  border-color:var(--primary);
+  box-shadow:var(--glow);
+}
+
+
+.search-box input::placeholder{color:var(--muted);}
+
+
+.search-box button{
+  padding:14px 22px;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(135deg,#22c55e,#16a34a);
+  color:#030a03;
+  font-weight:700;
+  cursor:pointer;
+  transition:0.3s;
+  box-shadow:0 4px 15px rgba(34,197,94,0.3);
+}
+
+
+.search-box button:hover{
+  transform:translateY(-2px);
+  box-shadow:0 0 25px rgba(34,197,94,0.4);
+}
+
+
+/* === NEW: Filter buttons === */
+.filter-buttons{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:16px auto 20px;
+  max-width:1200px;
+  padding:0 6%;
+  position:relative;
+  z-index:1;
+}
+
+
+.filter-btn{
+  padding:10px 18px;
+  border:1px solid var(--border);
+  border-radius:20px;
+  background:var(--card);
+  color:var(--muted);
+  font-size:13px;
+  cursor:pointer;
+  transition:0.3s;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+
+.filter-btn:hover{
+  border-color:var(--primary);
+  color:var(--primary);
+}
+
+
+.filter-btn.active{
+  background:var(--primary);
+  color:#030a03;
+  border-color:var(--primary);
+  font-weight:600;
+}
+
+
+.container{
+  width:90%;
+  max-width:1200px;
+  margin:0 auto 50px;
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:20px;
+  position:relative;
+  z-index:1;
+}
+
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:20px;
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(12px);
+  transition:0.3s;
+}
+
+
+.card:hover{
+  border-color:var(--primary-border);
+  box-shadow:var(--glow);
+}
+
+
+.card h2{
+  font-family:'Space Mono',monospace;
+  font-size:15px;
+  color:var(--primary);
+  margin-bottom:16px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+
+
+#map{
+  width:100%;
+  height:650px;
+  border-radius:16px;
+  overflow:hidden;
+}
+
+
+.status-box{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+
+.status{
+  padding:14px 16px;
+  border-radius:14px;
+  background:#0a160a;
+  border:1px solid var(--border);
+}
+
+
+.status h3{
+  font-size:15px;
+  margin-bottom:6px;
+}
+
+
+.status p{
+  font-size:13px;
+  color:#cbd5e1;
+  line-height:1.6;
+}
+
+
+.light{border-left:4px solid #22c55e;}
+.moderate{border-left:4px solid #facc15;}
+.heavy{border-left:4px solid #ef4444;}
+
+
+/* === NEW: City list === */
+.city-list{
+  max-height:300px;
+  overflow-y:auto;
+  margin-top:12px;
+}
+
+
+.city-item{
+  background:#0a160a;
+  border:1px solid var(--border);
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:8px;
+  cursor:pointer;
+  transition:0.3s;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+
+.city-item:hover{
+  border-color:var(--primary);
+  background:#102010;
+  transform:translateX(3px);
+}
+
+
+.city-item .city-name{
+  color:var(--text);
+  font-size:14px;
+  font-weight:500;
+}
+
+
+.city-item .city-distance{
+  color:var(--muted);
+  font-size:12px;
+}
+
+
+.stop{
+  background:#0a160a;
+  border:1px solid var(--border);
+  padding:14px;
+  border-radius:14px;
+  margin-top:12px;
+  transition:0.3s;
+  cursor:pointer;
+}
+
+
+.stop:hover{
+  transform:translateX(5px);
+  background:#102010;
+}
+
+
+.stop h4{
+  color:var(--primary);
+  margin-bottom:5px;
+  font-size:14px;
+}
+
+
+.stop p{
+  font-size:13px;
+  color:#cbd5e1;
+}
+
+
+.live{
+  width:10px;
+  height:10px;
+  background:#22c55e;
+  border-radius:50%;
+  display:inline-block;
+  margin-right:8px;
+  animation:pulse 1.2s infinite;
+}
+
+
+@keyframes pulse{
+  0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,0.35);}
+  50%{opacity:0.7;box-shadow:0 0 0 8px rgba(34,197,94,0);}
+}
+
+
+/* === NEW: Legend === */
+.legend-box{
+  background:#0a160a;
+  border:1px solid var(--border);
+  padding:12px;
+  border-radius:12px;
+  margin-top:12px;
+}
+
+
+.legend-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:8px;
+  font-size:13px;
+  color:#cbd5e1;
+}
+
+
+.legend-item:last-child{margin-bottom:0;}
+
+
+.legend-color{
+  width:16px;
+  height:16px;
+  border-radius:4px;
+}
+
+
+.legend-color.bus{background:#3b82f6;}
+.legend-color.train{background:#8b5cf6;}
+.legend-color.jeepney{background:#f59e0b;}
+.legend-color.city{background:#22c55e;}
+
+
+footer{
+  text-align:center;
+  padding:24px;
+  border-top:1px solid var(--border);
+  color:var(--muted);
+  font-size:12px;
+  position:relative;
+  z-index:1;
+}
+
+
+@media(max-width:1000px){
+  .container{grid-template-columns:1fr;}
+  #map{height:520px;}
+}
+
+
+@media(max-width:768px){
+  header{
+    flex-direction:column;
+    gap:14px;
+  }
+  nav{
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .hero h1{
+    font-size:28px;
+  }
+  .search-box{
+    flex-direction:column;
+  }
+  .search-box button{
+    width:100%;
+  }
+  .filter-buttons{
+    justify-content:center;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+
+
+/* Dark map look using CSS filter */
+.leaflet-container{
+  background:#030a03;
+}
+.leaflet-tile-pane{
+  filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(88%);
+}
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-attribution{
+  filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(88%);
+}
+</style>
+</head>
+
+
+<body>
+
+
+<header>
+  <div class="logo">Transit<span>Ease</span></div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="route.html">Route</a>
+    <a href="fare.html">Fare</a>
+    <a href="map.html" class="active">Map</a>
+    <a href="about.html">About</a>
+  </nav>
+</header>
+
+
+<section class="hero">
+  <h1>Live Transit <span>Map</span></h1>
+  <p>
+    Explore nearby terminals, transit stops, and traffic conditions across all NCR cities with real-time data.
+  </p>
+</section>
+
+
+<section class="search-container">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search city, route, stop, terminal, or destination (e.g., Makati, Cubao, MRT)...">
+    <button onclick="searchLocation()">Search</button>
+  </div>
+</section>
+
+
+<!-- === NEW: Filter Buttons === -->
+<section class="filter-buttons">
+  <button class="filter-btn active" onclick="filterMap('all')" id="filter-all">🗺️ All</button>
+  <button class="filter-btn" onclick="filterMap('bus')" id="filter-bus">🚌 Bus</button>
+  <button class="filter-btn" onclick="filterMap('train')" id="filter-train">🚆 MRT/LRT</button>
+  <button class="filter-btn" onclick="filterMap('jeepney')" id="filter-jeepney">🚐 Jeepney</button>
+  <button class="filter-btn" onclick="filterMap('city')" id="filter-city">🏙️ Cities</button>
+</section>
+
+
+<section class="container">
+  <div class="card">
+    <h2><span class="live"></span>Live Interactive Map — NCR</h2>
+    <div id="map"></div>
+  </div>
+
+
+  <div class="status-box">
+    <div class="card">
+      <h2>Traffic Status</h2>
+
+
+      <div class="status light">
+        <h3>🟢 EDSA (North)</h3>
+        <p>Light traffic • 28 km/h avg</p>
+      </div>
+
+
+      <div class="status moderate" style="margin-top:12px;">
+        <h3>🟡 EDSA (South)</h3>
+        <p>Moderate • 20 km/h avg</p>
+      </div>
+
+
+      <div class="status heavy" style="margin-top:12px;">
+        <h3>🔴 C-5 Road</h3>
+        <p>Heavy • 14 km/h avg</p>
+      </div>
+      
+      <div class="status moderate" style="margin-top:12px;">
+        <h3>🟡 Quezon Ave</h3>
+        <p>Moderate • 19 km/h avg</p>
+      </div>
+      
+      <div class="status light" style="margin-top:12px;">
+        <h3>🟢 Makati CBD</h3>
+        <p>Light • 25 km/h avg</p>
+      </div>
+    </div>
+
+
+    <!-- === NEW: NCR Cities List === -->
+    <div class="card">
+      <h2>NCR Cities</h2>
+      <div class="city-list" id="cityList"></div>
+    </div>
+
+
+    <div class="card">
+      <h2>Nearby Stops</h2>
+
+
+      <div class="stop" onclick="focusStop([14.6600,121.1000],'bus')">
+        <h4>🚌 Bus Stop - Cubao</h4>
+        <p>Main Road • 2 mins away</p>
+      </div>
+
+
+      <div class="stop" onclick="focusStop([14.5977,121.0024],'train')">
+        <h4>🚆 MRT-3 Taft Ave</h4>
+        <p>Ermita • 5 mins away</p>
+      </div>
+
+
+      <div class="stop" onclick="focusStop([14.5547,121.0244],'jeepney')">
+        <h4>🚐 Jeepney Terminal</h4>
+        <p>Makati CBD • 7 mins away</p>
+      </div>
+
+
+      <div class="stop" onclick="focusStop([14.6400,121.0355],'bus')">
+        <h4>🚏 Bus Stop - Quezon City</h4>
+        <p>EDSA • 4 mins away</p>
+      </div>
+    </div>
+    
+    <!-- === NEW: Legend === -->
+    <div class="card">
+      <h2>Map Legend</h2>
+      <div class="legend-box">
+        <div class="legend-item">
+          <div class="legend-color bus"></div>
+          <span>Bus Stop / Terminal</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color train"></div>
+          <span>MRT / LRT Station</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color jeepney"></div>
+          <span>Jeepney Terminal</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color city"></div>
+          <span>City Center</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<footer>
+  TransitEase © 2026 • Smart Navigation & Real-Time Transit • SDG 11 — Sustainable Cities
+</footer>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// === INITIALIZATION ===
+const map = L.map('map').setView([14.5995, 120.9842], 11);
+
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+
+
+// === NEW: NCR Cities with Accurate Coordinates ===
+const ncrcities = {
+  'Manila': { coords: [14.5995, 120.9842], distance: 0 },
+  'Quezon City': { coords: [14.6884, 121.0745], distance: 10 },
+  'Makati': { coords: [14.5547, 121.0244], distance: 7 },
+  'Pasay': { coords: [14.5378, 121.0014], distance: 6 },
+  'Pasig': { coords: [14.5764, 121.0851], distance: 12 },
+  'Taguig': { coords: [14.5176, 121.0509], distance: 10 },
+  'Mandaluyong': { coords: [14.5794, 121.0355], distance: 8 },
+  'Paranaque': { coords: [14.4791, 121.0198], distance: 9 },
+  'Muntinlupa': { coords: [14.3832, 121.0409], distance: 15 },
+  'Las Piñas': { coords: [14.4378, 120.9842], distance: 17 },
+  'Malabon': { coords: [14.6647, 120.9579], distance: 14 },
+  'Navotas': { coords: [14.6692, 120.9431], distance: 15 },
+  'Caloocan': { coords: [14.6507, 121.0029], distance: 12 },
+  'Valenzuela': { coords: [14.7063, 120.9826], distance: 19 },
+  'San Juan': { coords: [14.6019, 121.0355], distance: 5 },
+  'Marikina': { coords: [14.6507, 121.1029], distance: 14 },
+  'Antipolo': { coords: [14.5863, 121.1755], distance: 22 },
+  'Cubao': { coords: [14.6600, 121.1000], distance: 9 },
+  'BGC': { coords: [14.5507, 121.0470], distance: 9 },
+  'Ortigas': { coords: [14.5832, 121.0555], distance: 11 },
+  'Ermita': { coords: [14.5794, 120.9842], distance: 2 },
+  'Malate': { coords: [14.5707, 120.9897], distance: 3 },
+  'Quiapo': { coords: [14.5919, 120.9826], distance: 2 },
+  'Paco': { coords: [14.5647, 120.9926], distance: 4 },
+  'Pandacan': { coords: [14.5547, 120.9997], distance: 5 },
+  'Binondo': { coords: [14.6047, 120.9726], distance: 3 }
+};
+
+
+// === NEW: MRT/LRT Stations ===
+const mrtStations = [
+  { name: 'MRT-3 North Avenue', coords: [14.6919, 121.0507], route: 'MRT-3' },
+  { name: 'MRT-3 Quezon Avenue', coords: [14.6719, 121.0426], route: 'MRT-3' },
+  { name: 'MRT-3 GT Central Park', coords: [14.6550, 121.0355], route: 'MRT-3' },
+  { name: 'MRT-3 Cubao', coords: [14.6419, 121.0555], route: 'MRT-3' },
+  { name: 'MRT-3 Ortigas', coords: [14.5832, 121.0555], route: 'MRT-3' },
+  { name: 'MRT-3 Taft Avenue', coords: [14.5977, 121.0024], route: 'MRT-3' },
+  { name: 'LRT-1 Baclaran', coords: [14.5378, 120.9842], route: 'LRT-1' },
+  { name: 'LRT-1 EDSA', coords: [14.5707, 120.9897], route: 'LRT-1' },
+  { name: 'LRT-1 Carriedo', coords: [14.6047, 120.9726], route: 'LRT-1' },
+  { name: 'LRT-2 Santolan', coords: [14.5832, 121.0897], route: 'LRT-2' },
+  { name: 'LRT-2 Cubao', coords: [14.6419, 121.0555], route: 'LRT-2' },
+  { name: 'LRT-2 Recto', coords: [14.6047, 120.9826], route: 'LRT-2' }
+];
+
+
+// === NEW: Bus Stops & Jeepney Terminals ===
+const transportStops = [
+  { name: 'Bus Stop - Cubao', coords: [14.6600, 121.1000], type: 'bus' },
+  { name: 'Bus Stop - EDSA QC', coords: [14.6400, 121.0355], type: 'bus' },
+  { name: 'Bus Stop - Makati', coords: [14.5547, 121.0244], type: 'bus' },
+  { name: 'Jeepney Terminal - Makati', coords: [14.5547, 121.0244], type: 'jeepney' },
+  { name: 'Jeepney Terminal - QC', coords: [14.6884, 121.0745], type: 'jeepney' },
+  { name: 'Jeepney Terminal - Manila', coords: [14.5995, 120.9842], type: 'jeepney' }
+];
+
+
+// === MARKERS GROUPS ===
+let allMarkers = [];
+let visibleMarkers = [];
+
+
+// === ADD CITY MARKERS ===
+function addCityMarkers() {
+  for (const [city, data] of Object.entries(ncrcities)) {
+    const marker = L.marker(data.coords)
+      .addTo(map)
+      .bindPopup(`<strong>🏙️ ${city}</strong><br>Distance from Manila: ${data.distance} km`);
+    
+    marker.markerType = 'city';
+    marker.markerName = city;
+    allMarkers.push(marker);
+  }
+}
+
+
+// === ADD MRT/LRT STATIONS ===
+function addTrainMarkers() {
+  mrtStations.forEach(station => {
+    const marker = L.marker(station.coords)
+      .addTo(map)
+      .bindPopup(`<strong>🚆 ${station.name}</strong><br>Route: ${station.route}`);
+    
+    marker.markerType = 'train';
+    marker.markerName = station.name;
+    allMarkers.push(marker);
+  });
+}
+
+
+// === ADD BUS & JEEPNEY STOPS ===
+function addTransportMarkers() {
+  transportStops.forEach(stop => {
+    const icon = stop.type === 'bus' ? '🚌' : '🚐';
+    const marker = L.marker(stop.coords)
+      .addTo(map)
+      .bindPopup(`<strong>${icon} ${stop.name}</strong><br>Type: ${stop.type}`);
+    
+    marker.markerType = stop.type;
+    marker.markerName = stop.name;
+    allMarkers.push(marker);
+  });
+}
+
+
+// === INITIALIZE MARKERS ===
+addCityMarkers();
+addTrainMarkers();
+addTransportMarkers();
+
+
+// === NEW: Filter Function ===
+function filterMap(type) {
+  // Remove all markers
+  allMarkers.forEach(marker => map.removeLayer(marker));
+  allMarkers = [];
+  
+  // Update button states
+  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`filter-${type}`).classList.add('active');
+  
+  // Add filtered markers
+  if (type === 'all') {
+    addCityMarkers();
+    addTrainMarkers();
+    addTransportMarkers();
+  } else if (type === 'city') {
+    addCityMarkers();
+  } else if (type === 'train') {
+    addTrainMarkers();
+  } else {
+    addTransportMarkers();
+    if (type !== 'bus') {
+      transportStops.filter(s => s.type === type).forEach(stop => {
+        const icon = stop.type === 'bus' ? '🚌' : '🚐';
+        const marker = L.marker(stop.coords)
+          .addTo(map)
+          .bindPopup(`<strong>${icon} ${stop.name}</strong><br>Type: ${stop.type}`);
+        marker.markerType = stop.type;
+        allMarkers.push(marker);
+      });
+    }
+  }
+}
+
+
+// === POPULATE CITY LIST ===
+function populateCityList() {
+  const cityList = document.getElementById('cityList');
+  const sortedCities = Object.entries(ncrcities)
+    .sort((a, b) => a[1].distance - b[1].distance);
+  
+  cityList.innerHTML = sortedCities.map(([city, data], index) => `
+    <div class="city-item" onclick="focusCity('${city}')">
+      <span class="city-name">${index === 0 ? '📍' : '🏙️'} ${city}</span>
+      <span class="city-distance">${data.distance} km</span>
+    </div>
+  `).join('');
+}
+
+
+populateCityList();
+
+
+// === FOCUS ON CITY ===
+function focusCity(cityName) {
+  const city = ncrcities[cityName];
+  if (city) {
+    map.setView(city.coords, 13);
+    
+    // Find and open marker popup
+    allMarkers.forEach(marker => {
+      if (marker.markerName === cityName) {
+        marker.openPopup();
+      }
+    });
+  }
+}
+
+
+// === FOCUS ON STOP ===
+function focusStop(coords, type) {
+  map.setView(coords, 14);
+  
+  allMarkers.forEach(marker => {
+    if (marker.markerType === type) {
+      const markerLatLng = marker.getLatLng();
+      if (Math.abs(markerLatLng.lat - coords[0]) < 0.01 && 
+          Math.abs(markerLatLng.lng - coords[1]) < 0.01) {
+        marker.openPopup();
+      }
+    }
+  });
+}
+
+
+// === SEARCH FUNCTION ===
+function searchLocation(){
+  const input = document.getElementById("searchInput").value.toLowerCase().trim();
+
+
+  if(input === "") {
+    alert("Please enter a search term.");
+    return;
+  }
+
+
+  // Search cities
+  for (const [city, data] of Object.entries(ncrcities)) {
+    if (city.toLowerCase().includes(input)) {
+      focusCity(city);
+      return;
+    }
+  }
+
+
+  // Search stations
+  for (const station of mrtStations) {
+    if (station.name.toLowerCase().includes(input) || station.route.toLowerCase().includes(input)) {
+      map.setView(station.coords, 15);
+      allMarkers.forEach(marker => {
+        if (marker.markerName === station.name) {
+          marker.openPopup();
+        }
+      });
+      return;
+    }
+  }
+
+
+  // Search transport stops
+  for (const stop of transportStops) {
+    if (stop.name.toLowerCase().includes(input) || stop.type.includes(input)) {
+      focusStop(stop.coords, stop.type);
+      return;
+    }
+  }
+
+
+  // Default: zoom to Manila
+  if(input.includes("manila") || input.includes("metro") || input.includes("ncr")) {
+    map.setView([14.5995, 120.9842], 11);
+    return;
+  }
+
+
+  alert("Location not found. Try searching for a city, station, or transport type.");
+}
+
+
+// === KEYBOARD SEARCH ===
+document.getElementById("searchInput").addEventListener("keypress", function(e) {
+  if (e.key === "Enter") {
+    searchLocation();
+  }
+});
+
+
+// === USER LOCATION ===
+map.locate({setView:false,maxZoom:15});
+
+
+map.on('locationfound', function(e){
+  L.circleMarker(e.latlng,{
+    radius:12,
+    fillColor:"#22c55e",
+    color:"#fff",
+    weight:2,
+    opacity:1,
+    fillOpacity:1
+  }).addTo(map).bindPopup("📍 You are here").openPopup();
+});
+
+
+map.on('locationerror', function(e){
+  console.log("Location access denied or unavailable");
+});
+
+
+// === INITIAL FILTER ===
+filterMap('all');
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransitEase — NCR Digital Commuting Guide</title>
+<link rel="stylesheet" href="style.css"/>
+<style>
+/* INDEX-SPECIFIC */
+.hero{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  padding:100px 6% 80px;
+  position:relative;
+  overflow:hidden;
+background:
+  linear-gradient(rgba(3,10,3,0.60), rgba(3,10,3,0.85)),
+  url("https://www.getrealphilippines.com/wp-content/uploads/2017/06/manila_traffic-1500x1000.jpg");
+  background-size:cover;
+  background-position:center;
+}
+
+.hero-eyebrow{
+  font-family:'Space Mono',monospace;
+  font-size:11px;
+  letter-spacing:4px;
+  color:var(--primary);
+  text-transform:uppercase;
+  margin-bottom:22px;
+  opacity:0;
+  animation:fadeUp 0.2s 0.2s forwards;
+}
+
+.hero h1{
+  font-size:68px;
+  font-weight:700;
+  line-height:1.05;
+  margin-bottom:20px;
+  color:#fff;
+  opacity:0;
+  animation:fadeUp 0.6s 0.35s forwards;
+}
+
+.hero h1 span{
+  color:var(--primary);
+  text-shadow:var(--glow-strong);
+}
+
+.hero-desc{
+  max-width:620px;
+  color:var(--muted);
+  font-size:17px;
+  line-height:1.8;
+  margin-bottom:36px;
+  opacity:0;
+  animation:fadeUp 0.6s 0.5s forwards;
+}
+
+.hero-btns{
+  display:flex;
+  gap:14px;
+  justify-content:center;
+  flex-wrap:wrap;
+  opacity:0;
+  animation:fadeUp 0.6s 0.65s forwards;
+}
+
+/* GRID CARDS */
+.hero-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  padding:0 6% 60px;
+  margin-top:-30px;
+  position:relative;
+  z-index:2;
+}
+
+.hero-grid-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:22px;
+  backdrop-filter:blur(12px);
+  transition:0.3s;
+  cursor:pointer;
+  text-decoration:none;
+  display:block;
+}
+
+.hero-grid-card:hover{
+  transform:translateY(-6px);
+  border-color:var(--primary-border);
+  box-shadow:var(--glow);
+}
+
+.card-icon{font-size:28px;margin-bottom:10px;}
+.card-label{font-family:'Space Mono',monospace;font-size:11px;color:var(--primary);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.card-desc{font-size:13px;color:var(--muted);line-height:1.6;}
+
+/* FEATURES SECTION */
+.section{padding:70px 6%;}
+.section-header{margin-bottom:40px;}
+.section-header h2{font-size:38px;margin-bottom:10px;font-family:'Space Mono',monospace;}
+.section-header p{color:var(--muted);font-size:15px;max-width:500px;line-height:1.7;}
+
+.features-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:20px;
+}
+
+.feat{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:24px;
+  transition:0.3s;
+}
+
+.feat:hover{
+  border-color:var(--primary-border);
+  transform:translateY(-4px);
+  box-shadow:var(--glow);
+}
+
+.feat-icon{font-size:26px;margin-bottom:12px;}
+.feat h3{font-size:16px;margin-bottom:8px;color:var(--primary);}
+.feat p{font-size:14px;color:var(--muted);line-height:1.7;}
+
+/* HOLIDAY BANNER */
+.holiday-banner{
+  margin:0 6% 40px;
+  background:rgba(250,204,21,0.06);
+  border:1px solid rgba(250,204,21,0.25);
+  border-radius:16px;
+  padding:16px 20px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  font-size:14px;
+}
+
+.holiday-banner .icon{font-size:22px;flex-shrink:0;}
+.holiday-banner strong{color:#facc15;}
+.holiday-banner p{color:#e2c97e;line-height:1.5;}
+.holiday-close{margin-left:auto;cursor:pointer;color:var(--muted);font-size:18px;flex-shrink:0;}
+
+/* STATS */
+.stats-row{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  padding:0 6% 60px;
+}
+
+.stat{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px;
+  text-align:center;
+}
+
+.stat-num{
+  font-family:'Space Mono',monospace;
+  font-size:34px;
+  color:var(--primary);
+  font-weight:700;
+  text-shadow:var(--glow);
+}
+
+.stat-label{font-size:13px;color:var(--muted);margin-top:6px;}
+
+/* CTA */
+.cta-section{
+  text-align:center;
+  padding:70px 6%;
+  background:radial-gradient(ellipse at center,rgba(34,197,94,0.06),transparent 70%);
+}
+
+.cta-section h2{font-size:36px;margin-bottom:12px;font-family:'Space Mono',monospace;}
+.cta-section p{color:var(--muted);margin-bottom:28px;font-size:15px;}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(24px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+@media(max-width:900px){
+  .hero h1{font-size:44px;}
+  .hero-grid{grid-template-columns:repeat(2,1fr);}
+  .features-grid{grid-template-columns:1fr;}
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+}
+
+@media(max-width:600px){
+  .hero h1{font-size:34px;}
+  .hero-grid{grid-template-columns:1fr;}
+  .stats-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Transit<span>Ease</span></div>
+  <div class="menu-toggle" onclick="toggleNav()">☰</div>
+  <nav id="mainNav">
+    <nav>
+  <a href="index.html" class="active">Home</a>
+  <a href="route.html">Routes</a>
+  <a href="fare.html">Fare</a>
+  <a href="map.html">Map</a>
+  <a href="about.html">About</a>
+</nav>
+  </nav>
+</header>
+
+<!-- HOLIDAY TOAST -->
+<div class="holiday-toast" id="holidayPopup">
+
+  <div class="toast-header">
+    <div class="toast-icon">📅</div>
+
+    <div>
+      <div id="holidayTitle" class="toast-title">
+        Holiday Alert
+      </div>
+      <div id="holidayMessage" class="toast-text">
+        Checking holidays...
+      </div>
+    </div>
+
+    <button class="toast-close"
+      onclick="document.getElementById('holidayPopup').style.display='none'">
+      ✕
+    </button>
+  </div>
+
+</div>
+
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">NCR Digital Commuting Guide</div>
+  <h1>Travel Smarter<br>With <span>TransitEase</span></h1>
+  <p class="hero-desc">Your complete guide to navigating Metro Manila — find routes, compare fares, check live traffic, and commute with confidence every day.</p>
+  <div class="hero-btns">
+    <a href="route.html" class="btn btn-primary">🚌 Find a Route</a>
+    <a href="fare.html" class="btn btn-outline">💸 Calculate Fare</a>
+  </div>
+</section>
+
+<!-- QUICK ACCESS GRID -->
+<div class="hero-grid">
+  <a href="route.html" class="hero-grid-card">
+    <div class="card-icon">🗺️</div>
+    <div class="card-label">Route Finder</div>
+    <p class="card-desc">Find optimized jeepney, bus & MRT routes across NCR.</p>
+  </a>
+  <a href="fare.html" class="hero-grid-card">
+    <div class="card-icon">💸</div>
+    <div class="card-label">Fare Calculator</div>
+    <p class="card-desc">Estimate costs with student discounts and mode comparison.</p>
+  </a>
+  <a href="map.html" class="hero-grid-card">
+    <div class="card-icon">📍</div>
+    <div class="card-label">Live Map</div>
+    <p class="card-desc">Explore terminals, stops, and real-time transit locations.</p>
+  </a>
+  <a href="about.html" class="hero-grid-card">
+    <div class="card-icon">ℹ️</div>
+    <div class="card-label">About</div>
+    <p class="card-desc">Learn about TransitEase, SDG 11, and commuter tips.</p>
+  </a>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat"><div class="stat-num">26</div><div class="stat-label">Cities Covered in NCR</div></div>
+  <div class="stat"><div class="stat-num">200+</div><div class="stat-label">Known Routes</div></div>
+  <div class="stat"><div class="stat-num">8</div><div class="stat-label">Transport Modes</div></div>
+  <div class="stat"><div class="stat-num">24/7</div><div class="stat-label">Accessible Anytime</div></div>
+</div>
+
+<!-- FEATURES -->
+<section class="section">
+  <div class="section-header">
+    <div class="section-title">What We Offer</div>
+    <h2>Everything You Need<br><span style="color:var(--primary)">to Commute</span></h2>
+    <p>All the tools a Metro Manila commuter needs in one place.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feat"><div class="feat-icon">⚡</div><h3>Rush Hour Estimator</h3><p>See how travel time changes during peak hours (7–9 AM, 5–8 PM) vs off-peak commutes.</p></div>
+    <div class="feat"><div class="feat-icon">📊</div><h3>Fare Comparison</h3><p>Compare jeepney, bus, and MRT costs side by side so you pick the cheapest option.</p></div>
+    <div class="feat"><div class="feat-icon">📅</div><h3>Holiday Alerts</h3><p>Get warned about PH national holidays so you can plan around heavy traffic days.</p></div>
+    <div class="feat"><div class="feat-icon">📍</div><h3>Nearest Terminal</h3><p>Use your browser location to instantly find the closest bus stop or terminal near you.</p></div>
+    <div class="feat"><div class="feat-icon">🔀</div><h3>Smart Transfers</h3><p>Get multi-modal suggestions like "take MRT to Cubao, then jeepney to destination."</p></div>
+    <div class="feat"><div class="feat-icon">🕐</div><h3>Trip History</h3><p>Save routes you've searched so you can replay your most common commutes instantly.</p></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="section-title">Start Now</div>
+  <h2>Ready to Commute<br><span style="color:var(--primary)">Smarter?</span></h2>
+  <p>No sign-up needed. Free for all NCR commuters.</p>
+  <a href="route.html" class="btn btn-primary">Open Route Finder →</a>
+</section>
+
+<footer>© 2026 TransitEase | SDG 11 — Sustainable Cities & Communities</footer>
+
+<script>
+
+function checkHoliday() {
+
+  const holidays = [
+    {month:1,day:1,name:"New Year's Day"},
+    {month:4,day:9,name:"Araw ng Kagitingan"},
+    {month:5,day:1,name:"Labor Day"},
+    {month:6,day:12,name:"Independence Day"},
+    {month:8,day:25,name:"National Heroes Day"},
+    {month:11,day:30,name:"Bonifacio Day"},
+    {month:12,day:8,name:"Feast of the Immaculate Conception"},
+    {month:12,day:25,name:"Christmas Day"},
+    {month:12,day:30,name:"Rizal Day"},
+    {month:12,day:31,name:"New Year's Eve"}
+  ];
+
+  const now = new Date();
+
+  let nearest = null;
+  let minDays = Infinity;
+
+  holidays.forEach(h => {
+
+    let holidayDate = new Date(now.getFullYear(), h.month - 1, h.day);
+
+    if (holidayDate < now) {
+      holidayDate = new Date(now.getFullYear() + 1, h.month - 1, h.day);
+    }
+
+    const daysUntil =
+      Math.ceil((holidayDate - now) / (1000 * 60 * 60 * 24));
+
+    if (daysUntil < minDays) {
+      minDays = daysUntil;
+      nearest = { ...h, date: holidayDate };
+    }
+  });
+
+  const popup = document.getElementById("holidayPopup");
+  const title = document.getElementById("holidayTitle");
+  const message = document.getElementById("holidayMessage");
+
+  if (!nearest) return;
+
+  const formattedDate = nearest.date.toLocaleDateString("en-PH", {
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  });
+
+  if (minDays === 0) {
+
+    title.innerHTML = "🚨 Holiday Today";
+
+    message.innerHTML =
+      `<strong>${nearest.name}</strong><br>
+      ${formattedDate}<br>
+      Expect heavy traffic and crowded terminals.`;
+
+  } else {
+
+    title.innerHTML = "📅 Nearest Holiday";
+
+    message.innerHTML =
+      `<strong>${nearest.name}</strong><br>
+      ${formattedDate}<br>
+      <strong>${minDays}</strong> day${minDays > 1 ? "s" : ""} remaining`;
+  }
+
+  popup.style.display = "flex";
+}
+
+checkHoliday();
+</script>
